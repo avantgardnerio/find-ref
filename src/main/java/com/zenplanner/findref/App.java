@@ -20,36 +20,15 @@ public class App {
     public static void main(String[] args) throws Exception {
         String path = args[0];
         File root = new File(path);
-        Map<String,Set<String>> map = new TreeMap<>();
-        collect(root, root, map);
-        scan(root, map);
-        write(map);
+        Graph graph = new Graph();
+        collect(root, root, graph);
+        scan(root, graph);
+        graph.write();
     }
 
-    public static void write(Map<String,Set<String>> map) throws Exception {
-        try(BufferedWriter writer = new BufferedWriter(new FileWriter(new File("out.gv")))) {
-            writer.write("digraph abstract {\n");
-            for(Map.Entry<String,Set<String>> entry : map.entrySet()) {
-                String parent = entry.getKey();
-                parent = parent.replace('/', '_');
-                parent = parent.replace('.', '_');
-                parent = parent.replace('-', '_');
-                Set<String> children = entry.getValue();
-                for(String child : children) {
-                    child = child.replace('/', '_');
-                    child = child.replace('.', '_');
-                    child = child.replace('-', '_');
-                    writer.write(parent + " -> " + child + ";\n");
-                }
-            }
-            writer.write("}\n");
-        }
-    }
-
-    public static void scan(File root, Map<String,Set<String>> map) throws Exception {
-        for(Map.Entry<String,Set<String>> entry : map.entrySet()) {
-            String relative = entry.getKey();
-            Set<String> refs = entry.getValue();
+    public static void scan(File root, Graph graph) throws Exception {
+        for(String relative : graph.keySet()) {
+            Set<String> dependencies = graph.getDependencies(relative);
             File file = new File(root, relative);
             File folder = file.getParentFile();
             String path = file.getAbsolutePath();
@@ -66,16 +45,12 @@ public class App {
                 String rootRel = makeRelative(root, new File(root, grp)).toLowerCase();
 
                 // Map
-                if(map.containsKey(localRel)) {
-                    if(refs.add(localRel)) {
-                        //System.out.println(relative + " -> " + localRel);
-                    }
+                if(graph.containsKey(localRel)) {
+                    graph.addRelation(relative, localRel);
                     continue;
                 }
-                if(map.containsKey(rootRel)) {
-                    if(refs.add(rootRel)) {
-                        //System.out.println(relative + " -> " + rootRel);
-                    }
+                if(graph.containsKey(rootRel)) {
+                    graph.addRelation(relative, rootRel);
                     continue;
                 }
             }
@@ -101,14 +76,14 @@ public class App {
         return grp;
     }
 
-    public static void collect(File root, File parent, Map<String,Set<String>> map) throws Exception {
+    public static void collect(File root, File parent, Graph graph) throws Exception {
         for(File child : parent.listFiles()) {
             String filename = child.getName().toLowerCase();
             if(exclude.contains(filename)) {
                 continue;
             }
             if(child.isDirectory()) {
-                collect(root, child, map);
+                collect(root, child, graph);
             } else {
                 String ext = FilenameUtils.getExtension(filename);
                 if(!validExt.contains(ext)) {
@@ -116,8 +91,7 @@ public class App {
                 }
                 //String className = FilenameUtils.removeExtension(filename);
                 String relative = makeRelative(root, child);
-                Set<String> refs = new HashSet<>();
-                map.put(relative.toLowerCase(), refs);
+                graph.add(relative.toLowerCase());
             }
         }
     }
