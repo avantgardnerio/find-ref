@@ -23,6 +23,9 @@ public class App {
         Graph graph = new Graph();
         collect(root, root, graph);
         scan(root, graph);
+        if(args.length > 1) {
+            graph = graph.forward(args[1]);
+        }
         graph.write();
     }
 

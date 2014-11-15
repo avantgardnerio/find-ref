@@ -12,6 +12,32 @@ public class Graph {
     private Map<String,Set<String>> forward = new TreeMap<>();
     private Map<String,Set<String>> backward = new TreeMap<>();
 
+    public Graph forward(String start) {
+        Graph other = new Graph();
+        Set<String> visited = new HashSet<>();
+        forward(other, start, visited);
+        return other;
+    }
+
+    private void forward(Graph other, String current, Set<String> visited) {
+        // Don't revisit
+        if(visited.contains(current)) {
+            return;
+        }
+        visited.add(current);
+
+        Set<String> dependencies = this.getDependencies(current);
+        if(dependencies == null) {
+            return;
+        }
+        for(String dependency : dependencies) {
+            other.addRelation(current, dependency);
+        }
+        for(String dependency : dependencies) {
+            forward(other, dependency, visited);
+        }
+    }
+
     public void add(String name) {
         if(!forward.containsKey(name)) {
             forward.put(name, new HashSet<>());
