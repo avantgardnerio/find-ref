@@ -3,6 +3,7 @@ package com.zenplanner.findref;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
+import java.util.Map;
 
 public class App {
 
@@ -22,6 +23,9 @@ public class App {
         if (file != null && StringUtils.equals(dir, "backward")) {
             graph = graph.backward(file, maxDepth);
         }
+
+        //graph.writeDepths(new File("out.csv"));
+
         File outFile = new File("out.gv");
         graph.write(outFile);
         Process p = Runtime.getRuntime().exec("gvedit " + outFile.getAbsolutePath());

@@ -9,12 +9,12 @@ import java.util.Set;
 import java.util.TreeMap;
 
 public class Graph {
-    private Map<String,Set<String>> forward = new TreeMap<>();
-    private Map<String,Set<String>> backward = new TreeMap<>();
+    private Map<String, Set<String>> forward = new TreeMap<>();
+    private Map<String, Set<String>> backward = new TreeMap<>();
 
-    public Map<String,Integer> findDepths() {
-        Map<String,Integer> map = new TreeMap<>();
-        for(String key : keySet()) {
+    public Map<String, Integer> findDepths() {
+        Map<String, Integer> map = new TreeMap<>();
+        for (String key : keySet()) {
             Graph other = new Graph();
             Set<String> visited = new HashSet<>();
             int depth = forward(other, key, visited, 1, 0);
@@ -32,24 +32,24 @@ public class Graph {
 
     private int forward(Graph other, String current, Set<String> visited, int depth, int maxDepth) {
         int maxSeen = depth;
-        if(maxDepth > 0 && depth > maxDepth) {
+        if (maxDepth > 0 && depth > maxDepth) {
             return maxSeen;
         }
 
         // Don't revisit
-        if(visited.contains(current)) {
+        if (visited.contains(current)) {
             return maxSeen;
         }
         visited.add(current);
 
         Set<String> dependencies = this.getDependencies(current);
-        if(dependencies == null) {
+        if (dependencies == null) {
             return maxSeen;
         }
-        for(String dependency : dependencies) {
+        for (String dependency : dependencies) {
             other.addRelation(current, dependency);
         }
-        for(String dependency : dependencies) {
+        for (String dependency : dependencies) {
             maxSeen = Math.max(maxSeen, forward(other, dependency, visited, depth + 1, maxDepth));
         }
         return maxSeen;
@@ -64,34 +64,34 @@ public class Graph {
 
     private int backward(Graph other, String current, Set<String> visited, int depth, int maxDepth) {
         int maxSeen = depth;
-        if(maxDepth > 0 && depth > maxDepth) {
+        if (maxDepth > 0 && depth > maxDepth) {
             return maxSeen;
         }
 
         // Don't revisit
-        if(visited.contains(current)) {
+        if (visited.contains(current)) {
             return maxSeen;
         }
         visited.add(current);
 
         Set<String> dependors = this.getDependors(current);
-        if(dependors == null) {
+        if (dependors == null) {
             return maxSeen;
         }
-        for(String dependency : dependors) {
+        for (String dependency : dependors) {
             other.addRelation(current, dependency);
         }
-        for(String dependency : dependors) {
+        for (String dependency : dependors) {
             maxSeen = Math.max(maxSeen, backward(other, dependency, visited, depth + 1, maxDepth));
         }
         return maxSeen;
     }
 
     public void add(String name) {
-        if(!forward.containsKey(name)) {
+        if (!forward.containsKey(name)) {
             forward.put(name, new HashSet<>());
         }
-        if(!backward.containsKey(name)) {
+        if (!backward.containsKey(name)) {
             backward.put(name, new HashSet<>());
         }
     }
@@ -120,15 +120,30 @@ public class Graph {
     }
 
     public void write(File file) throws Exception {
-        try(BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-            writer.write("digraph abstract {\n");
-            for(String parent : this.keySet()) {
-                Set<String> children = this.getDependencies(parent);
-                for(String child : children) {
-                    writer.write(gvSafe(parent) + " -> " + gvSafe(child) + ";\n");
+        try (FileWriter w = new FileWriter(file)) {
+            try (BufferedWriter writer = new BufferedWriter(w)) {
+                writer.write("digraph abstract {\n");
+                for (String parent : this.keySet()) {
+                    Set<String> children = this.getDependencies(parent);
+                    for (String child : children) {
+                        writer.write(gvSafe(parent) + " -> " + gvSafe(child) + ";\n");
+                    }
                 }
+                writer.write("}\n");
+                writer.flush();
             }
-            writer.write("}\n");
+        }
+    }
+
+    public void writeDepths(File file) throws Exception {
+        Map<String, Integer> map = findDepths();
+        try (FileWriter w = new FileWriter(file)) {
+            try (BufferedWriter writer = new BufferedWriter(w)) {
+                for(String key : map.keySet()) {
+                    writer.write(key + ", " + map.get(key) + "\n");
+                }
+                writer.flush();
+            }
         }
     }
 
