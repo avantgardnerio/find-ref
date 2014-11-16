@@ -12,13 +12,6 @@ public class Graph {
     private Map<String,Set<String>> forward = new TreeMap<>();
     private Map<String,Set<String>> backward = new TreeMap<>();
 
-    public Graph forward(String start) {
-        Graph other = new Graph();
-        Set<String> visited = new HashSet<>();
-        forward(other, start, visited, 1);
-        return other;
-    }
-
     public Map<String,Integer> findDepths() {
         Map<String,Integer> map = new TreeMap<>();
         for(String key : keySet()) {
@@ -28,6 +21,13 @@ public class Graph {
             map.put(key, depth);
         }
         return map;
+    }
+
+    public Graph forward(String start) {
+        Graph other = new Graph();
+        Set<String> visited = new HashSet<>();
+        forward(other, start, visited, 1);
+        return other;
     }
 
     private int forward(Graph other, String current, Set<String> visited, int depth) {
@@ -48,6 +48,35 @@ public class Graph {
         }
         for(String dependency : dependencies) {
             maxDepth = Math.max(maxDepth, forward(other, dependency, visited, depth + 1));
+        }
+        return maxDepth;
+    }
+
+    public Graph backward(String start) {
+        Graph other = new Graph();
+        Set<String> visited = new HashSet<>();
+        backward(other, start, visited, 1);
+        return other;
+    }
+
+    private int backward(Graph other, String current, Set<String> visited, int depth) {
+        int maxDepth = depth;
+
+        // Don't revisit
+        if(visited.contains(current)) {
+            return maxDepth;
+        }
+        visited.add(current);
+
+        Set<String> dependors = this.getDependors(current);
+        if(dependors == null) {
+            return maxDepth;
+        }
+        for(String dependency : dependors) {
+            other.addRelation(current, dependency);
+        }
+        for(String dependency : dependors) {
+            maxDepth = Math.max(maxDepth, backward(other, dependency, visited, depth + 1));
         }
         return maxDepth;
     }
