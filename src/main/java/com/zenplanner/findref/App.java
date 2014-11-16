@@ -16,10 +16,10 @@ public class App {
         Scanner scanner = new Scanner();
         Graph graph = scanner.collect(root);
         scanner.link(root, graph);
-        if (StringUtils.equals(dir, "forward")) {
+        if (file != null && StringUtils.equals(dir, "forward")) {
             graph = graph.forward(file, maxDepth);
         }
-        if (StringUtils.equals(dir, "backward")) {
+        if (file != null && StringUtils.equals(dir, "backward")) {
             graph = graph.backward(file, maxDepth);
         }
         File outFile = new File("out.gv");
