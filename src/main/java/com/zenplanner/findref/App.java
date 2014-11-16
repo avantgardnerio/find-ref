@@ -23,6 +23,7 @@ public class App {
         Graph graph = new Graph();
         collect(root, root, graph);
         scan(root, graph);
+        graph.findDepths();
         if(args.length > 1) {
             graph = graph.forward(args[1]);
         }

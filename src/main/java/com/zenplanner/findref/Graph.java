@@ -15,27 +15,41 @@ public class Graph {
     public Graph forward(String start) {
         Graph other = new Graph();
         Set<String> visited = new HashSet<>();
-        forward(other, start, visited);
+        forward(other, start, visited, 1);
         return other;
     }
 
-    private void forward(Graph other, String current, Set<String> visited) {
+    public Map<String,Integer> findDepths() {
+        Map<String,Integer> map = new TreeMap<>();
+        for(String key : keySet()) {
+            Graph other = new Graph();
+            Set<String> visited = new HashSet<>();
+            int depth = forward(other, key, visited, 1);
+            map.put(key, depth);
+        }
+        return map;
+    }
+
+    private int forward(Graph other, String current, Set<String> visited, int depth) {
+        int maxDepth = depth;
+
         // Don't revisit
         if(visited.contains(current)) {
-            return;
+            return maxDepth;
         }
         visited.add(current);
 
         Set<String> dependencies = this.getDependencies(current);
         if(dependencies == null) {
-            return;
+            return maxDepth;
         }
         for(String dependency : dependencies) {
             other.addRelation(current, dependency);
         }
         for(String dependency : dependencies) {
-            forward(other, dependency, visited);
+            maxDepth = Math.max(maxDepth, forward(other, dependency, visited, depth + 1));
         }
+        return maxDepth;
     }
 
     public void add(String name) {
