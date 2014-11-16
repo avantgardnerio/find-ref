@@ -17,68 +17,74 @@ public class Graph {
         for(String key : keySet()) {
             Graph other = new Graph();
             Set<String> visited = new HashSet<>();
-            int depth = forward(other, key, visited, 1);
+            int depth = forward(other, key, visited, 1, 0);
             map.put(key, depth);
         }
         return map;
     }
 
-    public Graph forward(String start) {
+    public Graph forward(String start, int maxDepth) {
         Graph other = new Graph();
         Set<String> visited = new HashSet<>();
-        forward(other, start, visited, 1);
+        forward(other, start, visited, 1, maxDepth);
         return other;
     }
 
-    private int forward(Graph other, String current, Set<String> visited, int depth) {
-        int maxDepth = depth;
+    private int forward(Graph other, String current, Set<String> visited, int depth, int maxDepth) {
+        int maxSeen = depth;
+        if(maxDepth > 0 && depth > maxDepth) {
+            return maxSeen;
+        }
 
         // Don't revisit
         if(visited.contains(current)) {
-            return maxDepth;
+            return maxSeen;
         }
         visited.add(current);
 
         Set<String> dependencies = this.getDependencies(current);
         if(dependencies == null) {
-            return maxDepth;
+            return maxSeen;
         }
         for(String dependency : dependencies) {
             other.addRelation(current, dependency);
         }
         for(String dependency : dependencies) {
-            maxDepth = Math.max(maxDepth, forward(other, dependency, visited, depth + 1));
+            maxSeen = Math.max(maxSeen, forward(other, dependency, visited, depth + 1, maxDepth));
         }
-        return maxDepth;
+        return maxSeen;
     }
 
-    public Graph backward(String start) {
+    public Graph backward(String start, int maxDepth) {
         Graph other = new Graph();
         Set<String> visited = new HashSet<>();
-        backward(other, start, visited, 1);
+        backward(other, start, visited, 1, maxDepth);
         return other;
     }
 
-    private int backward(Graph other, String current, Set<String> visited, int depth) {
-        int maxDepth = depth;
+    private int backward(Graph other, String current, Set<String> visited, int depth, int maxDepth) {
+        int maxSeen = depth;
+        if(maxDepth > 0 && depth > maxDepth) {
+            return maxSeen;
+        }
 
         // Don't revisit
         if(visited.contains(current)) {
-            return maxDepth;
+            return maxSeen;
         }
         visited.add(current);
 
         Set<String> dependors = this.getDependors(current);
         if(dependors == null) {
-            return maxDepth;
+            return maxSeen;
         }
         for(String dependency : dependors) {
             other.addRelation(current, dependency);
         }
         for(String dependency : dependors) {
-            maxDepth = Math.max(maxDepth, backward(other, dependency, visited, depth + 1));
+            maxSeen = Math.max(maxSeen, backward(other, dependency, visited, depth + 1, maxDepth));
         }
-        return maxDepth;
+        return maxSeen;
     }
 
     public void add(String name) {
@@ -113,8 +119,8 @@ public class Graph {
         return backward.get(node);
     }
 
-    public void write() throws Exception {
-        try(BufferedWriter writer = new BufferedWriter(new FileWriter(new File("out.gv")))) {
+    public void write(File file) throws Exception {
+        try(BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             writer.write("digraph abstract {\n");
             for(String parent : this.keySet()) {
                 Set<String> children = this.getDependencies(parent);
