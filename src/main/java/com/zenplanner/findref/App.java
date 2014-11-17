@@ -8,6 +8,7 @@ import java.util.Map;
 public class App {
 
     public static void main(String[] args) throws Exception {
+        // TODO: Replace with a standard solution: http://commons.apache.org/proper/commons-cli/usage.html
         String path = args[0];
         String file = args.length > 1 ? args[1] : null;
         String dir = args.length > 2 ? args[2] : "forward";
