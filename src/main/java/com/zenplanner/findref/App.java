@@ -7,6 +7,7 @@ import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.util.io.graphml.GraphMLReader;
 import com.tinkerpop.blueprints.util.io.graphml.GraphMLWriter;
+import org.apache.commons.cli.*;
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.commons.configuration.Configuration;
 
@@ -19,11 +20,53 @@ import java.util.Map;
 public class App {
 
     public static void main(String[] args) throws Exception {
-        // TODO: Replace with a standard solution: http://commons.apache.org/proper/commons-cli/usage.html
-        String path = args[0];
-        String rootName = args.length > 1 ? args[1] : null;
-        Direction dir = args.length > 2 ? Direction.valueOf(args[2]) : Direction.OUT;
-        int maxDepth = args.length > 3 ? Integer.parseInt(args[3]) : Integer.MAX_VALUE;
+
+        // Command line options
+        Options options = new Options();
+        options.addOption(
+                OptionBuilder.withArgName("file").hasArg()
+                        .withDescription("graphml file to walk")
+                        .create('F')
+        );
+        options.addOption(
+                OptionBuilder.withArgName("root").hasArg()
+                        .withDescription("root node from which to walk graph")
+                        .create('R')
+        );
+        options.addOption(
+                OptionBuilder.withArgName("direction").hasArg()
+                        .withDescription("direction to walk [IN | OUT]")
+                        .create('D')
+        );
+        options.addOption(
+                OptionBuilder.withArgName("filter").hasArg()
+                        .withDescription("only include results that match this value")
+                        .create("filter")
+        );
+        options.addOption(
+                OptionBuilder.withLongOpt("depth").hasArg()
+                        .withDescription("maximum depth to walk")
+                        .create("depth")
+        );
+        options.addOption(
+                OptionBuilder.withArgName("help")
+                        .withDescription("print help message")
+                        .create('?')
+        );
+        CommandLineParser parser = new GnuParser();
+        CommandLine cmd = parser.parse(options, args);
+        if(cmd.hasOption('?')) {
+            HelpFormatter formatter = new HelpFormatter();
+            formatter.printHelp( "find-ref", options );
+            return;
+        }
+
+        // Parse arguments
+        String path = cmd.getOptionValue('F');
+        String rootName = cmd.getOptionValue('R');
+        Direction dir = Direction.valueOf(cmd.getOptionValue('D', "OUT"));
+        int maxDepth = cmd.hasOption("depth") ? Integer.parseInt(cmd.getOptionValue("depth")) : Integer.MAX_VALUE;
+        String filter = cmd.getOptionValue("filter");
 
         // Read
         Configuration conf = new BaseConfiguration();
@@ -36,7 +79,7 @@ public class App {
 
         // Filter
         Vertex root = getVert(oldGraph, rootName);
-        walk(newGraph, root, dir, maxDepth);
+        walk(newGraph, root, dir, maxDepth, filter);
 
         // Write
         try (FileOutputStream out = new FileOutputStream(new File("out.graphml"))) {
@@ -44,12 +87,12 @@ public class App {
         }
     }
 
-    private static void walk(TitanGraph out, Vertex root, Direction dir, int maxDepth) {
+    private static void walk(TitanGraph out, Vertex root, Direction dir, int maxDepth, String filter) {
         Map<Vertex, Vertex> visited = new HashMap<>();
-        walk(visited, out, root, dir, maxDepth, 1);
+        walk(visited, out, root, dir, maxDepth, 1, filter);
     }
 
-    private static Vertex walk(Map<Vertex, Vertex> visited, TitanGraph newGraph, Vertex oldParent, Direction dir, int maxDepth, int depth) {
+    private static Vertex walk(Map<Vertex, Vertex> visited, TitanGraph newGraph, Vertex oldParent, Direction dir, int maxDepth, int depth, String filter) {
         // Don't cycle
         if (visited.containsKey(oldParent)) {
             return visited.get(oldParent);
@@ -59,10 +102,14 @@ public class App {
         visited.put(oldParent, newParent);
 
         // Scan children
-        if(depth < maxDepth) {
+        if (depth < maxDepth) {
             for (Edge oldEdge : oldParent.getEdges(dir, "child")) {
                 Vertex oldChild = oldEdge.getVertex(dir.opposite());
-                Vertex newChild = walk(visited, newGraph, oldChild, dir, maxDepth, depth+1);
+                String oldPath = oldChild.getProperty("path");
+                if(filter != null && !oldPath.contains(filter)) {
+                    continue;
+                }
+                Vertex newChild = walk(visited, newGraph, oldChild, dir, maxDepth, depth + 1, filter);
                 newGraph.addEdge(null, newParent, newChild, "child");
             }
         }
