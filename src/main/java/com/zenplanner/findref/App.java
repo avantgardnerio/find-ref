@@ -39,9 +39,14 @@ public class App {
                         .create('D')
         );
         options.addOption(
-                OptionBuilder.withArgName("filter").hasArg()
+                OptionBuilder.withArgName("include").hasArg()
                         .withDescription("only include results that match this value")
-                        .create("filter")
+                        .create("include")
+        );
+        options.addOption(
+                OptionBuilder.withArgName("exclude").hasArg()
+                        .withDescription("exclude results that match this value")
+                        .create("exclude")
         );
         options.addOption(
                 OptionBuilder.withLongOpt("depth").hasArg()
@@ -66,7 +71,8 @@ public class App {
         String rootName = cmd.getOptionValue('R');
         Direction dir = Direction.valueOf(cmd.getOptionValue('D', "OUT"));
         int maxDepth = cmd.hasOption("depth") ? Integer.parseInt(cmd.getOptionValue("depth")) : Integer.MAX_VALUE;
-        String filter = cmd.getOptionValue("filter");
+        String include = cmd.getOptionValue("include");
+        String exclude = cmd.getOptionValue("exclude");
 
         // Read
         Configuration conf = new BaseConfiguration();
@@ -79,7 +85,7 @@ public class App {
 
         // Filter
         Vertex root = getVert(oldGraph, rootName);
-        walk(newGraph, root, dir, maxDepth, filter);
+        walk(newGraph, root, dir, maxDepth, include, exclude);
 
         // Write
         try (FileOutputStream out = new FileOutputStream(new File("out.graphml"))) {
@@ -87,12 +93,12 @@ public class App {
         }
     }
 
-    private static void walk(TitanGraph out, Vertex root, Direction dir, int maxDepth, String filter) {
+    private static void walk(TitanGraph out, Vertex root, Direction dir, int maxDepth, String include, String exclude) {
         Map<Vertex, Vertex> visited = new HashMap<>();
-        walk(visited, out, root, dir, maxDepth, 1, filter);
+        walk(visited, out, root, dir, maxDepth, 1, include, exclude);
     }
 
-    private static Vertex walk(Map<Vertex, Vertex> visited, TitanGraph newGraph, Vertex oldParent, Direction dir, int maxDepth, int depth, String filter) {
+    private static Vertex walk(Map<Vertex, Vertex> visited, TitanGraph newGraph, Vertex oldParent, Direction dir, int maxDepth, int depth, String include, String exclude) {
         // Don't cycle
         if (visited.containsKey(oldParent)) {
             return visited.get(oldParent);
@@ -106,10 +112,13 @@ public class App {
             for (Edge oldEdge : oldParent.getEdges(dir, "child")) {
                 Vertex oldChild = oldEdge.getVertex(dir.opposite());
                 String oldPath = oldChild.getProperty("path");
-                if(filter != null && !oldPath.contains(filter)) {
+                if(include != null && !oldPath.contains(include)) {
                     continue;
                 }
-                Vertex newChild = walk(visited, newGraph, oldChild, dir, maxDepth, depth + 1, filter);
+                if(exclude != null && oldPath.contains(exclude)) {
+                    continue;
+                }
+                Vertex newChild = walk(visited, newGraph, oldChild, dir, maxDepth, depth + 1, include, exclude);
                 newGraph.addEdge(null, newParent, newChild, "child");
             }
         }
